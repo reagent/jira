@@ -4,6 +4,9 @@
   "description": "Manage Jira tickets from the commandline",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "lint": "eslint ."
+  },
   "prettier": {
     "printWidth": 80,
     "useTabs": false,
@@ -13,6 +16,9 @@
   "devDependencies": {
     "@tsconfig/node18": "^1.0.1",
     "@types/node": "^18.13.0",
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "@typescript-eslint/parser": "^5.52.0",
+    "eslint": "^8.34.0",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
   }
