@@ -20,6 +20,7 @@ const configFile = new ConfigurationFile(
 
 yargs
   .scriptName('jira')
+
   .command<Options.Init>(
     'init',
     'Initialize configuration',
@@ -84,4 +85,6 @@ yargs
       terminal.table(cells);
     }
   )
+  .demandCommand(1, 'Subcommand not specified')
+  .strict()
   .help().argv;
