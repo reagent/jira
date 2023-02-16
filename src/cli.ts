@@ -66,4 +66,22 @@ yargs
       terminal.table(cells);
     }
   )
+  .command(
+    'tickets:watching',
+    "Get a list of tickets you're watching",
+    async () => {
+      const { credentials } = configFile.read();
+
+      const client = new Jira(credentials);
+      const tickets = await client.issues.watching();
+
+      const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
+
+      tickets.forEach(({ key, summary, status, url }) =>
+        cells.push([key, summary, status, url])
+      );
+
+      terminal.table(cells);
+    }
+  )
   .help().argv;

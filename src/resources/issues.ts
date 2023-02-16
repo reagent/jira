@@ -4,6 +4,8 @@ import { URL } from 'url';
 type IssueKey = `${Uppercase<string>}-${number}`;
 type NumericString = `${number}`;
 
+type AssigneeAttributes = { displayName: string };
+
 type IssueAttributes = {
   id: NumericString;
   key: IssueKey;
@@ -11,7 +13,7 @@ type IssueAttributes = {
   fields: {
     summary: string;
     status: { name: string };
-    assignee: { displayName: string };
+    assignee: AssigneeAttributes | null;
   };
 };
 
@@ -21,7 +23,7 @@ class Issue {
   summary: string;
   self: string;
   status: string;
-  assignee: string;
+  assignee: string | null;
 
   constructor(attrs: IssueAttributes) {
     const {
@@ -36,7 +38,7 @@ class Issue {
     this.self = self;
     this.summary = summary;
     this.status = status.name;
-    this.assignee = assignee.displayName;
+    this.assignee = assignee?.displayName || null;
   }
 
   get url(): string {
@@ -100,6 +102,19 @@ class Issues {
     if (activeOnly) {
       query.where('status = "In Progress"');
     }
+
+    const { data } = await this.httpClient.get<IssueResponse>(
+      '/rest/api/3/search',
+      { jql: query.toString() }
+    );
+
+    return data.issues.map((i) => new Issue(i));
+  }
+
+  async watching(): Promise<Array<Issue>> {
+    const query = new Query()
+      .where('watcher = currentUser()')
+      .order('createdDate', 'DESC');
 
     const { data } = await this.httpClient.get<IssueResponse>(
       '/rest/api/3/search',
