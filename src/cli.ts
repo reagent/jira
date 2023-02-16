@@ -40,7 +40,9 @@ yargs
         token = await prompt('Enter Jira API Token: ');
       }
 
-      if (!configFile.addCredentials({ email: args.email, token })) {
+      const configuration = configFile.initialize({ email: args.email, token });
+
+      if (!configuration.write()) {
         console.error('Failed to add credentials to file');
         process.exit(1);
       }

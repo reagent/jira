@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
 
 type Statuses = Array<string>;
@@ -19,7 +19,7 @@ class Configuration {
 
   constructor(options: { path: string; configuration: ConfigurationSchema }) {
     this.path = options.path;
-    this.configuration = options.configuration;
+    this.configuration = options.configuration || {};
   }
 
   get credentials(): Credentials {
@@ -36,6 +36,7 @@ class Configuration {
   }
 
   write(): boolean {
+    mkdirSync(dirname(this.path), { recursive: true });
     writeFileSync(this.path, JSON.stringify(this.configuration, null, 2));
 
     return true;
@@ -53,6 +54,13 @@ class ConfigurationFile {
     return existsSync(this.fullPath);
   }
 
+  initialize(credentials: Credentials): Configuration {
+    return new Configuration({
+      path: this.fullPath,
+      configuration: { credentials },
+    });
+  }
+
   read(): Configuration {
     const encoded = readFileSync(this.fullPath, {
       encoding: 'utf-8',
@@ -62,14 +70,6 @@ class ConfigurationFile {
       path: this.fullPath,
       configuration: JSON.parse(encoded),
     });
-  }
-
-  addCredentials(credentials: Credentials): boolean {
-    mkdirSync(this.path, { recursive: true });
-
-    writeFileSync(this.fullPath, JSON.stringify({ credentials }, null, 2));
-
-    return true;
   }
 }
 
