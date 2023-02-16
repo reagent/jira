@@ -11,6 +11,7 @@ import { terminal } from 'terminal-kit';
 namespace Options {
   export type Init = { email: string };
   export type Tickets = { all: boolean };
+  export type StatusesAdd = { status: string };
 }
 
 const configFile = new ConfigurationFile(
@@ -45,6 +46,29 @@ yargs
       }
     }
   )
+  .command('statuses', "See statuses considered 'active'", () => {
+    const { statuses } = configFile.read();
+
+    if (statuses.length === 0) {
+      console.log('No actve statuses');
+    } else {
+      console.log('Active statuses:');
+
+      statuses.forEach((s) => console.log(` * ${s}`));
+    }
+  })
+  .command<Options.StatusesAdd>(
+    'statuses:add <status>',
+    "Add an 'active' status",
+    (yargs) => {
+      yargs.positional('status', { type: 'string', demandOption: true });
+    },
+    (args) => {
+      const configuration = configFile.read();
+      configuration.addStatus(args.status);
+      configuration.write();
+    }
+  )
   .command<Options.Tickets>(
     'tickets',
     'Get a current list of your active tickets',
@@ -52,10 +76,16 @@ yargs
       yargs.option('all', { type: 'boolean', default: false });
     },
     async (args) => {
-      const { credentials } = configFile.read();
+      const configuration = configFile.read();
+
+      if (configuration.statuses.length === 0) {
+        console.error('No active statuses found, add one with `statuses:add`');
+        process.exit(1);
+      }
+
       const activeOnly = !args.all;
 
-      const client = new Jira(credentials);
+      const client = new Jira(configuration);
       const tickets = await client.issues.assigned({ activeOnly });
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
@@ -71,9 +101,9 @@ yargs
     'tickets:watching',
     "Get a list of tickets you're watching",
     async () => {
-      const { credentials } = configFile.read();
+      const configuration = configFile.read();
 
-      const client = new Jira(credentials);
+      const client = new Jira(configuration);
       const tickets = await client.issues.watching();
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];

@@ -1,5 +1,6 @@
 import { HttpClient } from '../http-client';
 import { URL } from 'url';
+import { Configuration } from '../cli/configuration-file';
 
 type IssueKey = `${Uppercase<string>}-${number}`;
 type NumericString = `${number}`;
@@ -62,6 +63,11 @@ class Query {
   protected conditions: ConditionClause[];
   protected orderCondition: OrderClause | undefined;
 
+  static in(field: string, values: Array<string>): ConditionClause {
+    const escapedValues = values.map((v) => `"${v}"`); // TODO: embedded double quotes
+    return `${field} IN (${escapedValues.join(', ')})`;
+  }
+
   constructor() {
     this.conditions = [];
     this.orderCondition = undefined;
@@ -90,7 +96,16 @@ class Query {
 }
 
 class Issues {
-  constructor(protected readonly httpClient: HttpClient) {}
+  protected readonly httpClient: HttpClient;
+  protected readonly configuration: Configuration;
+
+  constructor(options: {
+    httpClient: HttpClient;
+    configuration: Configuration;
+  }) {
+    this.httpClient = options.httpClient;
+    this.configuration = options.configuration;
+  }
 
   async assigned(options?: { activeOnly: boolean }): Promise<Array<Issue>> {
     const { activeOnly = true } = options || {};
@@ -100,7 +115,7 @@ class Issues {
       .order('createdDate', 'DESC');
 
     if (activeOnly) {
-      query.where('status = "In Progress"');
+      query.where(Query.in('status', this.configuration.statuses));
     }
 
     const { data } = await this.httpClient.get<IssueResponse>(

@@ -1,6 +1,8 @@
 import { join } from 'path';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
 
+type Statuses = Array<string>;
+
 type Credentials = {
   email: string;
   token: string;
@@ -8,33 +10,67 @@ type Credentials = {
 
 type ConfigurationSchema = {
   credentials: Credentials;
+  statuses?: Statuses;
 };
 
-class ConfigurationFile {
-  constructor(readonly path: string, readonly filename: string) {}
+class Configuration {
+  protected path: string;
+  protected configuration: ConfigurationSchema;
 
-  exists(): boolean {
-    return existsSync(join(this.path, this.filename));
+  constructor(options: { path: string; configuration: ConfigurationSchema }) {
+    this.path = options.path;
+    this.configuration = options.configuration;
   }
 
-  read(): ConfigurationSchema {
-    const encoded = readFileSync(join(this.path, this.filename), {
-      encoding: 'utf-8',
-    });
-
-    return JSON.parse(encoded);
+  get credentials(): Credentials {
+    return this.configuration.credentials;
   }
 
-  addCredentials(credentials: Credentials): boolean {
-    mkdirSync(this.path, { recursive: true });
+  get statuses(): Statuses {
+    return this.configuration.statuses || [];
+  }
 
-    writeFileSync(
-      join(this.path, this.filename),
-      JSON.stringify({ credentials }, null, 2)
-    );
+  addStatus(status: string): void {
+    this.configuration.statuses ||= [];
+    this.configuration.statuses.push(status);
+  }
+
+  write(): boolean {
+    writeFileSync(this.path, JSON.stringify(this.configuration, null, 2));
 
     return true;
   }
 }
 
-export { Credentials, ConfigurationSchema, ConfigurationFile };
+class ConfigurationFile {
+  constructor(readonly path: string, readonly filename: string) {}
+
+  get fullPath(): string {
+    return join(this.path, this.filename);
+  }
+
+  exists(): boolean {
+    return existsSync(this.fullPath);
+  }
+
+  read(): Configuration {
+    const encoded = readFileSync(this.fullPath, {
+      encoding: 'utf-8',
+    });
+
+    return new Configuration({
+      path: this.fullPath,
+      configuration: JSON.parse(encoded),
+    });
+  }
+
+  addCredentials(credentials: Credentials): boolean {
+    mkdirSync(this.path, { recursive: true });
+
+    writeFileSync(this.fullPath, JSON.stringify({ credentials }, null, 2));
+
+    return true;
+  }
+}
+
+export { Credentials, ConfigurationSchema, ConfigurationFile, Configuration };
