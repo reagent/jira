@@ -2,6 +2,7 @@ import { dirname, join } from 'path';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
 
 type Statuses = Array<string>;
+type Sprint = { id: number; label: string; current: boolean };
 
 type Credentials = {
   email: string;
@@ -11,6 +12,7 @@ type Credentials = {
 type ConfigurationSchema = {
   credentials: Credentials;
   statuses?: Statuses;
+  sprints?: Array<Sprint>;
 };
 
 class Configuration {
@@ -30,9 +32,34 @@ class Configuration {
     return this.configuration.statuses || [];
   }
 
+  get sprints(): Array<Sprint> {
+    return this.configuration.sprints || [];
+  }
+
   addStatus(status: string): void {
     this.configuration.statuses ||= [];
     this.configuration.statuses.push(status);
+  }
+
+  addSprint(sprint: Sprint): void {
+    this.configuration.sprints ||= [];
+
+    if (sprint.current) {
+      this.configuration.sprints.forEach((sprint) => (sprint.current = false));
+    }
+
+    const existing = this.configuration.sprints.find(
+      ({ id }) => id === sprint.id
+    );
+
+    if (existing) {
+      existing.id = sprint.id;
+      existing.current = sprint.current;
+
+      return;
+    }
+
+    this.configuration.sprints.push(sprint);
   }
 
   write(): boolean {

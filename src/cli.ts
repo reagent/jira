@@ -12,6 +12,7 @@ namespace Options {
   export type Init = { email: string };
   export type Tickets = { all: boolean };
   export type StatusesAdd = { status: string };
+  export type SprintsAdd = { id: number; label: string; current: boolean };
 }
 
 const configFile = new ConfigurationFile(
@@ -68,6 +69,48 @@ yargs
     (args) => {
       const configuration = configFile.read();
       configuration.addStatus(args.status);
+      configuration.write();
+    }
+  )
+  .command('sprints', 'Get a current list of configured sprints', () => {
+    const { sprints } = configFile.read();
+
+    if (sprints.length === 0) {
+      console.log('No sprints added');
+    } else {
+      console.log('Sprints:');
+
+      sprints.forEach(({ label, id, current }) => {
+        let output = ` * "${label}" (id: ${id})`;
+
+        if (current) {
+          output += ' <- current';
+        }
+
+        console.log(output);
+      });
+
+      console.log();
+    }
+  })
+  .command<Options.SprintsAdd>(
+    'sprints:add <label>',
+    'Add a sprint',
+    (yargs) => {
+      yargs
+        .option('id', { type: 'number', alias: 'i', demandOption: true })
+        .option('current', { type: 'boolean', default: false })
+        .positional('label', { type: 'string', demandOption: true });
+    },
+    (args) => {
+      const configuration = configFile.read();
+
+      configuration.addSprint({
+        id: args.id,
+        label: args.label,
+        current: args.current,
+      });
+
       configuration.write();
     }
   )
