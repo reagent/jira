@@ -2,6 +2,7 @@ import { dirname, join } from 'path';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
 
 type Statuses = Array<string>;
+type IssueType = { id: number; label: string };
 type Project = { id: number; key: string; label: string; default: boolean };
 type Sprint = { id: number; label: string; current: boolean };
 type Team = { id: string; label: string; default: boolean };
@@ -13,6 +14,7 @@ type Credentials = {
 
 type ConfigurationSchema = {
   credentials: Credentials;
+  issueTypes?: Array<IssueType>;
   projects?: Array<Project>;
   statuses?: Statuses;
   sprints?: Array<Sprint>;
@@ -32,6 +34,10 @@ class Configuration {
     return this.configuration.credentials;
   }
 
+  get issueTypes(): Array<IssueType> {
+    return this.configuration.issueTypes || [];
+  }
+
   get projects(): Array<Project> {
     return this.configuration.projects || [];
   }
@@ -46,6 +52,21 @@ class Configuration {
 
   get teams(): Array<Team> {
     return this.configuration.teams || [];
+  }
+
+  addIssueType(issueType: IssueType): void {
+    this.configuration.issueTypes ||= [];
+
+    const existing = this.configuration.issueTypes.find(
+      ({ id }) => id === issueType.id
+    );
+
+    if (existing) {
+      existing.label = issueType.label;
+      return;
+    }
+
+    this.configuration.issueTypes.push(issueType);
   }
 
   addProject(project: Project): void {

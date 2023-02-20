@@ -10,6 +10,7 @@ import { terminal } from 'terminal-kit';
 
 namespace Options {
   export type Init = { email: string };
+  export type IssueTypesAdd = { id: number; label: string };
   export type Tickets = { all: boolean };
   export type ProjectsAdd = {
     id: number;
@@ -54,6 +55,37 @@ yargs
         console.error('Failed to add credentials to file');
         process.exit(1);
       }
+    }
+  )
+  .command('issuetypes', 'See a list of issue types', () => {
+    const { issueTypes } = configFile.read();
+
+    if (issueTypes.length === 0) {
+      console.log('No issue types added');
+    } else {
+      console.log('Issue Types:');
+
+      issueTypes.forEach((issueType) => {
+        console.log(` * "${issueType.label}" (id: ${issueType.id})`);
+      });
+
+      console.log();
+    }
+  })
+  .command<Options.IssueTypesAdd>(
+    'issuetypes:add <label>',
+    'Add an issue type',
+    (yargs) => {
+      yargs
+        .option('id', { type: 'number', demandOption: true })
+        .positional('label', { type: 'string', demandOption: true });
+    },
+    (args) => {
+      const configuration = configFile.read();
+
+      configuration.addIssueType({ id: args.id, label: args.label });
+
+      configuration.write();
     }
   )
   .command('projects', 'See a list of configured projects', () => {
