@@ -11,6 +11,12 @@ import { terminal } from 'terminal-kit';
 namespace Options {
   export type Init = { email: string };
   export type Tickets = { all: boolean };
+  export type ProjectsAdd = {
+    id: number;
+    key: string;
+    label: string;
+    default: boolean;
+  };
   export type StatusesAdd = { status: string };
   export type SprintsAdd = { id: number; label: string; current: boolean };
   export type TeamsAdd = { id: string; label: string; default: boolean };
@@ -48,6 +54,50 @@ yargs
         console.error('Failed to add credentials to file');
         process.exit(1);
       }
+    }
+  )
+  .command('projects', 'See a list of configured projects', () => {
+    const { projects } = configFile.read();
+
+    if (projects.length === 0) {
+      console.log('No projects added');
+    } else {
+      console.log('Projects:');
+
+      projects.forEach((project) => {
+        let output = ` * "${project.label}" (id: ${project.id}, key: ${project.key})`;
+
+        if (project.default) {
+          output += ' <- default';
+        }
+
+        console.log(output);
+      });
+
+      console.log();
+    }
+  })
+  .command<Options.ProjectsAdd>(
+    'projects:add <label>',
+    'Add a project',
+    (yargs) => {
+      yargs
+        .option('id', { type: 'number', alias: 'i', demandOption: true })
+        .option('key', { type: 'string', demandOption: true })
+        .option('default', { type: 'boolean', default: false })
+        .positional('label', { type: 'string', demandOption: true });
+    },
+    (args) => {
+      const configuration = configFile.read();
+
+      configuration.addProject({
+        id: args.id,
+        key: args.key,
+        label: args.label,
+        default: args.default,
+      });
+
+      configuration.write();
     }
   )
   .command('statuses', "See statuses considered 'active'", () => {
