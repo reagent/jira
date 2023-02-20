@@ -13,6 +13,7 @@ namespace Options {
   export type Tickets = { all: boolean };
   export type StatusesAdd = { status: string };
   export type SprintsAdd = { id: number; label: string; current: boolean };
+  export type TeamsAdd = { id: string; label: string; default: boolean };
 }
 
 const configFile = new ConfigurationFile(
@@ -109,6 +110,48 @@ yargs
         id: args.id,
         label: args.label,
         current: args.current,
+      });
+
+      configuration.write();
+    }
+  )
+  .command('teams', 'View a list of your configured teams', () => {
+    const { teams } = configFile.read();
+
+    if (teams.length === 0) {
+      console.log('No teams added');
+    } else {
+      console.log('Teams:');
+
+      teams.forEach((team) => {
+        let output = ` * "${team.label}" (id: ${team.id})`;
+
+        if (team.default) {
+          output += ' <- default';
+        }
+
+        console.log(output);
+      });
+
+      console.log();
+    }
+  })
+  .command<Options.TeamsAdd>(
+    'teams:add <label>',
+    'Add a team',
+    (yargs) => {
+      yargs
+        .option('id', { type: 'string', alias: 'i', demandOption: true })
+        .option('default', { type: 'boolean', default: false })
+        .positional('label', { type: 'string', demandOption: true });
+    },
+    (args) => {
+      const configuration = configFile.read();
+
+      configuration.addTeam({
+        id: args.id,
+        label: args.label,
+        default: args.default,
       });
 
       configuration.write();

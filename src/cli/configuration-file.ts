@@ -3,6 +3,7 @@ import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
 
 type Statuses = Array<string>;
 type Sprint = { id: number; label: string; current: boolean };
+type Team = { id: string; label: string; default: boolean };
 
 type Credentials = {
   email: string;
@@ -13,6 +14,7 @@ type ConfigurationSchema = {
   credentials: Credentials;
   statuses?: Statuses;
   sprints?: Array<Sprint>;
+  teams?: Array<Team>;
 };
 
 class Configuration {
@@ -34,6 +36,10 @@ class Configuration {
 
   get sprints(): Array<Sprint> {
     return this.configuration.sprints || [];
+  }
+
+  get teams(): Array<Team> {
+    return this.configuration.teams || [];
   }
 
   addStatus(status: string): void {
@@ -60,6 +66,25 @@ class Configuration {
     }
 
     this.configuration.sprints.push(sprint);
+  }
+
+  addTeam(team: Team): void {
+    this.configuration.teams ||= [];
+
+    if (team.default) {
+      this.configuration.teams.forEach((team) => (team.default = false));
+    }
+
+    const existing = this.configuration.teams.find(({ id }) => id === team.id);
+
+    if (existing) {
+      existing.label = team.label;
+      existing.default = team.default;
+
+      return;
+    }
+
+    this.configuration.teams.push(team);
   }
 
   write(): boolean {
