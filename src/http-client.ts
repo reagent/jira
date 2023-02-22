@@ -24,8 +24,15 @@ class HttpClient {
     });
   }
 
-  get<T = any>(path: string, params?: Params): Promise<AxiosResponse<T>> {
-    return this.client.get(path, { params });
+  get<R = any>(path: string, params?: Params): Promise<AxiosResponse<R>> {
+    return this.client.get<R>(path, { params });
+  }
+
+  post<B extends object = object, R = any>(
+    path: string,
+    body: B
+  ): Promise<AxiosResponse<R>> {
+    return this.client.post<R>(path, body);
   }
 }
 

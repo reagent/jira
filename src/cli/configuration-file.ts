@@ -38,8 +38,20 @@ class Configuration {
     return this.configuration.issueTypes || [];
   }
 
+  issueType(label: string): IssueType | undefined {
+    return this.issueTypes.find((issueType) => issueType.label === label);
+  }
+
   get projects(): Array<Project> {
     return this.configuration.projects || [];
+  }
+
+  project(identifier?: string): Project | undefined {
+    if (!identifier) {
+      return this.projects.find((project) => project.default);
+    }
+
+    return this.projects.find(({ id, key }) => [id, key].includes(identifier));
   }
 
   get statuses(): Statuses {
@@ -50,8 +62,24 @@ class Configuration {
     return this.configuration.sprints || [];
   }
 
+  sprint(label?: string): Sprint | undefined {
+    if (!label) {
+      return this.sprints.find(({ current }) => current);
+    }
+
+    return this.sprints.find((sprint) => sprint.label === label);
+  }
+
   get teams(): Array<Team> {
     return this.configuration.teams || [];
+  }
+
+  team(label?: string): Team | undefined {
+    if (!label) {
+      return this.teams.find((team) => team.default);
+    }
+
+    return this.teams.find((team) => team.label === label);
   }
 
   addIssueType(issueType: IssueType): void {

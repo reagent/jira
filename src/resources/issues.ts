@@ -5,6 +5,73 @@ import { Configuration } from '../cli/configuration-file';
 type IssueKey = `${Uppercase<string>}-${number}`;
 type NumericString = `${number}`;
 
+const urlFrom = (options: { resourceUri: string; key: string }): string => {
+  const url = new URL(options.resourceUri);
+  url.pathname = `/browse/${options.key}`;
+
+  return url.toString();
+};
+
+class CreatedIssue {
+  id: string;
+  key: string;
+  self: string;
+
+  constructor(attributes: CreatedIssueAttributes) {
+    ({ id: this.id, key: this.key, self: this.self } = attributes);
+  }
+
+  get url(): string {
+    return urlFrom({ resourceUri: this.self, key: this.key });
+  }
+}
+
+type CreatedIssueAttributes = {
+  id: string;
+  key: string;
+  self: string;
+  };
+
+type IssueCreateResponse = {
+  response: CreatedIssueAttributes;
+};
+
+type NewIssueAttributes = {
+  projectId: number;
+  issueTypeId: number;
+  teamId: NumericString;
+  sprintId: number;
+  summary: string;
+  description: string;
+};
+
+type Description = {
+  type: 'doc';
+  version: 1;
+  content: [
+    {
+      type: 'paragraph';
+      content: [
+        {
+          type: 'text';
+          text: string;
+        }
+      ];
+    }
+  ];
+};
+
+type IssueCreateBody = {
+  fields: {
+    project: { id: number };
+    issuetype: { id: number };
+    customfield_10001: NumericString; // team
+    customfield_10010: number; // sprint
+    summary: string;
+    description: Description;
+  };
+};
+
 type AssigneeAttributes = { displayName: string };
 
 type IssueAttributes = {
@@ -16,6 +83,11 @@ type IssueAttributes = {
     status: { name: string };
     assignee: AssigneeAttributes | null;
   };
+  };
+
+type IssueResponse = {
+  total: number;
+  issues: Array<IssueAttributes>;
 };
 
 class Issue {
@@ -43,17 +115,9 @@ class Issue {
   }
 
   get url(): string {
-    const url = new URL(this.self);
-    url.pathname = `/browse/${this.key}`;
-
-    return url.toString();
+    return urlFrom({ resourceUri: this.self, key: this.key });
   }
 }
-
-type IssueResponse = {
-  total: number;
-  issues: Array<IssueAttributes>;
-};
 
 type SortDirection = 'ASC' | 'DESC';
 type ConditionClause = string;
@@ -138,6 +202,42 @@ class Issues {
 
     return data.issues.map((i) => new Issue(i));
   }
+
+  async create(fields: NewIssueAttributes): Promise<CreatedIssue> {
+    const { projectId, issueTypeId, teamId, sprintId, summary } = fields;
+
+    const description: Description = {
+      type: 'doc',
+      version: 1,
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: fields.description,
+            },
+          ],
+        },
+      ],
+    };
+
+    const { data } = await this.httpClient.post<
+      IssueCreateBody,
+      IssueCreateResponse
+    >('rest/api/3/issue', {
+      fields: {
+        summary,
+        project: { id: projectId },
+        issuetype: { id: issueTypeId },
+        customfield_10001: teamId.toString() as NumericString,
+        customfield_10010: sprintId,
+        description: description,
+      },
+    });
+
+    return new CreatedIssue(data.response);
+  }
 }
 
-export { Issues };
+export { Issues, NumericString };
