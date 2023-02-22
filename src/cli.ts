@@ -10,7 +10,7 @@ import { terminal } from 'terminal-kit';
 import { NumericString } from './resources/issues';
 
 namespace Options {
-  export type Init = { email: string };
+  export type Init = { email: string; uri: string };
   export type IssueTypesAdd = { id: number; label: string };
   export type Tickets = { all: boolean };
   export type TicketsCreate = {
@@ -43,7 +43,9 @@ yargs
     'init',
     'Initialize configuration',
     (yargs) => {
-      yargs.option('email', { type: 'string', demandOption: true });
+      yargs
+        .option('email', { type: 'string', demandOption: true })
+        .option('uri', { type: 'string', demandOption: true });
     },
     async (args) => {
       if (configFile.exists()) {
@@ -57,7 +59,11 @@ yargs
         token = await prompt('Enter Jira API Token: ');
       }
 
-      const configuration = configFile.initialize({ email: args.email, token });
+      const configuration = configFile.initialize({
+        email: args.email,
+        uri: args.uri,
+        token,
+      });
 
       if (!configuration.write()) {
         console.error('Failed to add credentials to file');
