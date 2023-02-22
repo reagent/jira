@@ -255,13 +255,12 @@ yargs
     },
     async (args) => {
       const configuration = configFile.read();
+      const activeOnly = !args.all;
 
-      if (configuration.statuses.length === 0) {
+      if (activeOnly && configuration.statuses.length === 0) {
         console.error('No active statuses found, add one with `statuses:add`');
         process.exit(1);
       }
-
-      const activeOnly = !args.all;
 
       const client = new Jira(configuration);
       const tickets = await client.issues.assigned({ activeOnly });
