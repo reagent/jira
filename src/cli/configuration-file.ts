@@ -8,6 +8,7 @@ type Sprint = { id: number; label: string; current: boolean };
 type Team = { id: string; label: string; default: boolean };
 
 type Credentials = {
+  uri: string;
   email: string;
   token: string;
 };
