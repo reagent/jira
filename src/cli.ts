@@ -7,18 +7,14 @@ import { prompt } from './cli/prompt';
 import { ConfigurationFile } from './cli/configuration-file';
 import { Jira } from './jira';
 import { terminal } from 'terminal-kit';
-import { NumericString } from './resources/issues';
 
 namespace Options {
   export type Init = { email: string; uri: string };
   export type IssueTypesAdd = { id: number; label: string };
   export type Tickets = { all: boolean };
   export type TicketsCreate = {
+    template: string;
     summary: string;
-    type: string;
-    project?: string;
-    team?: string;
-    sprint?: string;
   };
   export type ProjectsAdd = {
     id: number;
@@ -358,58 +354,33 @@ yargs
     'Create a ticket with the configured options',
     (yargs) => {
       yargs
-        .option('type', { type: 'string', demandOption: true })
-        .option('project', { type: 'string' })
-        .option('team', { type: 'string' })
-        .option('sprint', { type: 'string' })
+        .option('template', { type: 'string', demandOption: true })
         .positional('summary', { type: 'string', demandOption: true });
     },
     async (args) => {
       const configuration = configFile.read();
+      const template = configuration.templates[args.template];
 
-      const {
-        type,
-        summary,
-        project: projectIdentifier,
-        team: teamLabel,
-        sprint: sprintLabel,
-      } = args;
+      if (!template) {
+        console.error(`Template "${args.template}" not found`);
+        const templateLabels = Object.keys(configuration.templates);
 
-      const issueType = configuration.issueType(type);
+        if (templateLabels.length > 0) {
+          console.error();
+          console.error('Available templates: ');
+          templateLabels.forEach((l) => console.error(` * ${l}`));
+          console.error();
+        }
 
-      if (!issueType) {
-        console.error(`Could not locate issue type: ${type}`);
-        process.exit(1);
-      }
-
-      const project = configuration.project(projectIdentifier);
-
-      if (!project) {
-        console.error(`Could not locate project: ${projectIdentifier}`);
-        process.exit(1);
-      }
-
-      const team = configuration.team(teamLabel);
-      if (!team) {
-        console.error(`Could not locate team: ${teamLabel}`);
-        process.exit(1);
-      }
-
-      const sprint = configuration.sprint(sprintLabel);
-      if (!sprint) {
-        console.error(`Could not locate sprint: ${sprintLabel}`);
         process.exit(1);
       }
 
       const client = new Jira(configuration);
 
       const issue = await client.issues.create({
-        summary,
+        ...template,
+        summary: args.summary,
         description: 'Placeholder',
-        issueTypeId: issueType.id,
-        projectId: project.id,
-        sprintId: sprint.id,
-        teamId: team.id as NumericString,
       });
 
       console.log(issue.url);

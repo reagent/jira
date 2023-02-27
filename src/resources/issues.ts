@@ -32,17 +32,14 @@ type CreatedIssueAttributes = {
   self: string;
   };
 
-type IssueCreateResponse = {
-  response: CreatedIssueAttributes;
-};
-
 type NewIssueAttributes = {
   projectId: number;
   issueTypeId: number;
-  teamId: NumericString;
-  sprintId: number;
   summary: string;
   description: string;
+  parentId?: number;
+  teamId?: number;
+  sprintId?: number;
 };
 
 type Description = {
@@ -65,8 +62,9 @@ type IssueCreateBody = {
   fields: {
     project: { id: number };
     issuetype: { id: number };
-    customfield_10001: NumericString; // team
-    customfield_10010: number; // sprint
+    parent?: { id: string };
+    customfield_10001?: string; // team
+    customfield_10010?: number; // sprint
     summary: string;
     description: Description;
   };
@@ -203,8 +201,9 @@ class Issues {
     return data.issues.map((i) => new Issue(i));
   }
 
-  async create(fields: NewIssueAttributes): Promise<CreatedIssue> {
-    const { projectId, issueTypeId, teamId, sprintId, summary } = fields;
+  async create(fields: NewIssueAttributes): Promise<any> {
+    const { projectId, issueTypeId, teamId, sprintId, parentId, summary } =
+      fields;
 
     const description: Description = {
       type: 'doc',
@@ -222,21 +221,28 @@ class Issues {
       ],
     };
 
-    const { data } = await this.httpClient.post<
-      IssueCreateBody,
-      IssueCreateResponse
-    >('rest/api/3/issue', {
+    const payload: IssueCreateBody = {
       fields: {
         summary,
+
         project: { id: projectId },
-        issuetype: { id: issueTypeId },
-        customfield_10001: teamId.toString() as NumericString,
+        issuetype: { id: issueTypeId }, // chore
+        customfield_10001: teamId?.toString(),
         customfield_10010: sprintId,
         description: description,
       },
-    });
+    };
 
-    return new CreatedIssue(data.response);
+    if (parentId) {
+      payload.fields.parent = { id: parentId.toString() };
+    }
+
+    const { data } = await this.httpClient.post<
+      IssueCreateBody,
+      CreatedIssueAttributes
+    >('rest/api/3/issue', payload);
+
+    return new CreatedIssue(data);
   }
 }
 
