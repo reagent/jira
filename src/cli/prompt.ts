@@ -1,6 +1,6 @@
 import readline from 'readline';
 
-export const prompt = (question: string): Promise<string | null> => {
+export const prompt = (question: string): Promise<string | undefined> => {
   const line = readline.createInterface({
     input: process.stdin,
     output: process.stderr,
@@ -12,7 +12,7 @@ export const prompt = (question: string): Promise<string | null> => {
       line.close();
 
       if (trimmed.length === 0) {
-        return resolve(null);
+        return resolve(undefined);
       }
 
       return resolve(trimmed);

@@ -29,6 +29,7 @@ namespace Options {
   export type StatusesAdd = { status: string };
   export type SprintsAdd = { id: number; label: string; current: boolean };
   export type TeamsAdd = { id: string; label: string; default: boolean };
+  export type TemplatesAdd = { label: string };
 }
 
 const configFile = new ConfigurationFile(
@@ -53,7 +54,7 @@ yargs
         process.exit(0);
       }
 
-      let token: string | null = null;
+      let token: string | undefined = undefined;
 
       while (!token) {
         token = await prompt('Enter Jira API Token: ');
@@ -248,6 +249,60 @@ yargs
         id: args.id,
         label: args.label,
         default: args.default,
+      });
+
+      configuration.write();
+    }
+  )
+  .command<Options.TemplatesAdd>(
+    'templates:add <label>',
+    'Add template for creating tickets',
+    (yargs) => {
+      yargs.positional('label', { type: 'string', demandOption: 'true' });
+    },
+    async (args) => {
+      const configuration = configFile.read();
+
+      let response: string | undefined = undefined;
+
+      let issueTypeId: number | undefined = undefined;
+      let projectId: number | undefined = undefined;
+
+      while (!issueTypeId) {
+        response = await prompt('Issue Type Id: ');
+
+        if (response) {
+          issueTypeId = Number(response);
+        }
+      }
+
+      while (!projectId) {
+        response = await prompt('Project Id: ');
+
+        if (response) {
+          projectId = Number(response);
+        }
+      }
+
+      response = await prompt('Parent Id: ');
+      const parentId = response ? Number(response) : undefined;
+
+      response = await prompt('Sprint Id: ');
+      const sprintId = response ? Number(response) : undefined;
+
+      response = await prompt('Team Id: ');
+      const teamId = response ? Number(response) : undefined;
+
+      response = await prompt('Label: ');
+      const labels = response ? [response] : [];
+
+      configuration.addTemplate(args.label, {
+        parentId,
+        sprintId,
+        teamId,
+        issueTypeId,
+        projectId,
+        labels,
       });
 
       configuration.write();
