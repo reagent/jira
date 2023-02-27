@@ -7,6 +7,19 @@ type Project = { id: number; key: string; label: string; default: boolean };
 type Sprint = { id: number; label: string; current: boolean };
 type Team = { id: string; label: string; default: boolean };
 
+type TemplateLabel = string;
+
+type Template = {
+  projectId: number;
+  issueTypeId: number;
+  parentId?: number;
+  teamId?: number;
+  sprintId?: number;
+  labels?: Array<string>;
+};
+
+type Templates = Record<TemplateLabel, Template>;
+
 type Credentials = {
   uri: string;
   email: string;
@@ -20,6 +33,7 @@ type ConfigurationSchema = {
   statuses?: Statuses;
   sprints?: Array<Sprint>;
   teams?: Array<Team>;
+  templates?: Templates;
 };
 
 class Configuration {
@@ -81,6 +95,10 @@ class Configuration {
     }
 
     return this.teams.find((team) => team.label === label);
+  }
+
+  get templates(): Templates {
+    return this.configuration.templates || {};
   }
 
   addIssueType(issueType: IssueType): void {
@@ -165,6 +183,11 @@ class Configuration {
     }
 
     this.configuration.teams.push(team);
+  }
+
+  addTemplate(label: TemplateLabel, template: Template): void {
+    this.configuration.templates ||= {};
+    this.configuration.templates[label] = template;
   }
 
   write(): boolean {
