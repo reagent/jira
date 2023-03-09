@@ -1,11 +1,12 @@
-import Axios, { AxiosResponse, AxiosInstance } from 'axios';
+import Axios, { AxiosResponse, AxiosInstance, AxiosAdapter } from 'axios';
 
-type Params = Record<string, string>;
+type Params = Record<string, string | number | undefined>;
 
 type HttpClientOptions = {
   email: string;
   token: string;
   baseUri: string;
+  httpAdapter?: AxiosAdapter;
 };
 
 class HttpClient {
@@ -21,6 +22,8 @@ class HttpClient {
         'Content-Type': 'application/json',
       },
       auth: { username, password },
+      validateStatus: () => true, // don't throw
+      adapter: options.httpAdapter,
     });
   }
 

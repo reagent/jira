@@ -1,9 +1,15 @@
 import { Configuration } from './cli/configuration-file';
 import { HttpClient } from './http-client';
 import { Issues } from './resources/issues';
+import { Projects } from './resources/projects';
+import { Sprints } from './resources/sprints';
+import { Teams } from './resources/teams';
 
 class Jira {
+  projects: Projects;
   issues: Issues;
+  sprints: Sprints;
+  teams: Teams;
 
   protected http: HttpClient;
 
@@ -16,10 +22,11 @@ class Jira {
       baseUri: credentials.uri,
     });
 
-    this.issues = new Issues({
-      httpClient: this.http,
-      configuration,
-    });
+    this.projects = new Projects(this.http);
+    this.issues = new Issues(this.http);
+
+    this.sprints = new Sprints(this.http);
+    this.teams = new Teams(this.http);
   }
 }
 

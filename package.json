@@ -25,6 +25,8 @@
     "dist"
   ],
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "@reagent/axios-http-mock": "^0.1.0",
     "@tsconfig/node18": "^1.0.1",
     "@types/jest": "^29.4.0",
     "@types/node": "^18.13.0",
