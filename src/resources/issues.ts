@@ -1,15 +1,32 @@
 import { HttpClient } from '../http-client';
 import { URL } from 'url';
-import { Configuration } from '../cli/configuration-file';
-
-type IssueKey = `${Uppercase<string>}-${number}`;
-type NumericString = `${number}`;
+import { NumericString } from './types';
+import { QueryBuilder } from '../query-builder';
 
 const urlFrom = (options: { resourceUri: string; key: string }): string => {
   const url = new URL(options.resourceUri);
   url.pathname = `/browse/${options.key}`;
 
   return url.toString();
+};
+
+type IssueKey = `${Uppercase<string>}-${number}`;
+type AssigneeAttributes = { displayName: string };
+
+type IssueAttributes = {
+  id: NumericString;
+  key: IssueKey;
+  self: string;
+  fields: {
+    summary: string;
+    status: { name: string };
+    assignee: AssigneeAttributes | null;
+  };
+};
+
+type IssueResponse = {
+  total: number;
+  issues: Array<IssueAttributes>;
 };
 
 class CreatedIssue {
@@ -30,7 +47,7 @@ type CreatedIssueAttributes = {
   id: string;
   key: string;
   self: string;
-  };
+};
 
 type NewIssueAttributes = {
   projectId: number;
@@ -40,6 +57,7 @@ type NewIssueAttributes = {
   parentId?: number;
   teamId?: number;
   sprintId?: number;
+  labels?: string[];
 };
 
 type Description = {
@@ -65,27 +83,10 @@ type IssueCreateBody = {
     parent?: { id: string };
     customfield_10001?: string; // team
     customfield_10010?: number; // sprint
+    labels?: string[];
     summary: string;
     description: Description;
   };
-};
-
-type AssigneeAttributes = { displayName: string };
-
-type IssueAttributes = {
-  id: NumericString;
-  key: IssueKey;
-  self: string;
-  fields: {
-    summary: string;
-    status: { name: string };
-    assignee: AssigneeAttributes | null;
-  };
-  };
-
-type IssueResponse = {
-  total: number;
-  issues: Array<IssueAttributes>;
 };
 
 class Issue {
@@ -117,80 +118,64 @@ class Issue {
   }
 }
 
-type SortDirection = 'ASC' | 'DESC';
-type ConditionClause = string;
-type OrderClause = { field: string; direction: SortDirection };
-
-class Query {
-  protected conditions: ConditionClause[];
-  protected orderCondition: OrderClause | undefined;
-
-  static in(field: string, values: Array<string>): ConditionClause {
-    const escapedValues = values.map((v) => `"${v}"`); // TODO: embedded double quotes
-    return `${field} IN (${escapedValues.join(', ')})`;
-  }
-
-  constructor() {
-    this.conditions = [];
-    this.orderCondition = undefined;
-  }
-
-  where(condition: string): this {
-    this.conditions.push(condition);
-    return this;
-  }
-
-  order(field: string, direction: SortDirection = 'ASC'): this {
-    this.orderCondition = { field, direction };
-    return this;
-  }
-
-  toString(): string {
-    let jql = this.conditions.join(' AND ');
-
-    if (this.orderCondition) {
-      const { field, direction } = this.orderCondition;
-      jql = `${jql} ORDER BY ${field} ${direction}`;
-    }
-
-    return jql;
-  }
-}
+type SearchConditions = {
+  issueType?: 'Epic';
+  summary?: string;
+};
 
 class Issues {
-  protected readonly httpClient: HttpClient;
-  protected readonly configuration: Configuration;
+  constructor(protected httpClient: HttpClient) {}
 
-  constructor(options: {
-    httpClient: HttpClient;
-    configuration: Configuration;
-  }) {
-    this.httpClient = options.httpClient;
-    this.configuration = options.configuration;
-  }
+  async where(conditions?: SearchConditions): Promise<Array<Issue>> {
+    const query = new QueryBuilder();
 
-  async assigned(options?: { activeOnly: boolean }): Promise<Array<Issue>> {
-    const { activeOnly = true } = options || {};
-
-    const query = new Query()
-      .where('assignee = currentUser()')
-      .order('createdDate', 'DESC');
-
-    if (activeOnly) {
-      query.where(Query.in('status', this.configuration.statuses));
+    if (conditions?.issueType) {
+      query.where('issuetype', conditions.issueType);
     }
 
-    const { data } = await this.httpClient.get<IssueResponse>(
+    if (conditions?.summary) {
+      query.like('summary', conditions.summary);
+    }
+
+    const jql = query.toString();
+    const params = jql.length ? { jql } : {};
+
+    const { status, data } = await this.httpClient.get<IssueResponse>(
+      '/rest/api/3/search',
+      params
+    );
+
+    if (status !== 200) {
+      return [];
+    }
+
+    return data.issues.map((i) => new Issue(i));
+  }
+
+  async assigned(options?: { status: string[] }): Promise<Array<Issue>> {
+    const query = new QueryBuilder()
+      .where('assignee', 'currentUser()')
+      .order('createdDate', 'DESC');
+
+    if (options?.status) {
+      query.in('status', options.status);
+    }
+
+    const { status, data } = await this.httpClient.get<IssueResponse>(
       '/rest/api/3/search',
       { jql: query.toString() }
     );
+
+    if (status !== 200) {
+      return [];
+    }
 
     return data.issues.map((i) => new Issue(i));
   }
 
   async watching(): Promise<Array<Issue>> {
-    const query = new Query()
-      .where('watcher = currentUser()')
+    const query = new QueryBuilder()
+      .where('watcher', 'currentUser()')
       .order('createdDate', 'DESC');
 
     const { data } = await this.httpClient.get<IssueResponse>(
@@ -201,9 +186,16 @@ class Issues {
     return data.issues.map((i) => new Issue(i));
   }
 
-  async create(fields: NewIssueAttributes): Promise<any> {
-    const { projectId, issueTypeId, teamId, sprintId, parentId, summary } =
-      fields;
+  async create(fields: NewIssueAttributes): Promise<CreatedIssue> {
+    const {
+      projectId,
+      issueTypeId,
+      teamId,
+      sprintId,
+      parentId,
+      summary,
+      labels,
+    } = fields;
 
     const description: Description = {
       type: 'doc',
@@ -230,6 +222,7 @@ class Issues {
         customfield_10001: teamId?.toString(),
         customfield_10010: sprintId,
         description: description,
+        labels,
       },
     };
 
@@ -240,10 +233,18 @@ class Issues {
     const { data } = await this.httpClient.post<
       IssueCreateBody,
       CreatedIssueAttributes
-    >('rest/api/3/issue', payload);
+    >('/rest/api/3/issue', payload);
 
     return new CreatedIssue(data);
   }
 }
 
-export { Issues, NumericString };
+export {
+  Issues,
+  IssueKey,
+  NumericString,
+  IssueResponse,
+  NewIssueAttributes,
+  CreatedIssueAttributes,
+  IssueAttributes,
+};
