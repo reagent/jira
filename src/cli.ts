@@ -3,10 +3,13 @@
 import yargs from 'yargs';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import { text, password, isCancel, cancel } from '@clack/prompts';
 import { prompt } from './cli/prompt';
 import { ConfigurationFile } from './cli/configuration-file';
 import { Jira } from './jira';
 import { terminal } from 'terminal-kit';
+
+type ValidationFunc = (input: string) => string | void;
 
 namespace Options {
   export type Init = { email: string; uri: string };
@@ -28,6 +31,24 @@ namespace Options {
   export type TemplatesAdd = { label: string };
 }
 
+const notBlank = (message: string): ValidationFunc => {
+  return (input) => {
+    if (input.trim().length === 0) {
+      return message;
+    }
+  };
+};
+
+function abortOnCancel(
+  result: string | symbol,
+  options?: { message?: string; exitCode?: number }
+): asserts result is string {
+  if (isCancel(result)) {
+    cancel(options?.message || 'Aborted.');
+    process.exit(options?.exitCode || 1);
+  }
+}
+
 const configFile = new ConfigurationFile(
   resolve(homedir(), '.config', 'jira'),
   'config.json'
@@ -36,38 +57,41 @@ const configFile = new ConfigurationFile(
 yargs
   .scriptName('jira')
 
-  .command<Options.Init>(
-    'init',
-    'Initialize configuration',
-    (yargs) => {
-      yargs
-        .option('email', { type: 'string', demandOption: true })
-        .option('uri', { type: 'string', demandOption: true });
-    },
-    async (args) => {
-      if (configFile.exists()) {
-        console.log('Already initialized, skipping ...');
-        process.exit(0);
-      }
-
-      let token: string | undefined = undefined;
-
-      while (!token) {
-        token = await prompt('Enter Jira API Token: ');
-      }
-
-      const configuration = configFile.initialize({
-        email: args.email,
-        uri: args.uri,
-        token,
-      });
-
-      if (!configuration.write()) {
-        console.error('Failed to add credentials to file');
-        process.exit(1);
-      }
+  .command<Options.Init>('init', 'Initialize configuration', async () => {
+    if (configFile.exists()) {
+      console.log('Already initialized, skipping ...');
+      process.exit(0);
     }
-  )
+
+    const uri = await text({
+      message: 'Base URI',
+      placeholder: 'https://<companyname>.atlassian.net',
+      validate: notBlank('URI is required'),
+    });
+
+    abortOnCancel(uri);
+
+    const email = await text({
+      message: 'Email',
+      validate: notBlank('Email is required'),
+    });
+
+    abortOnCancel(email);
+
+    const token = await password({
+      message: 'Enter Jira API Token',
+      validate: notBlank('API token is required'),
+    });
+
+    abortOnCancel(token);
+
+    const configuration = configFile.initialize({ email, uri, token });
+
+    if (!configuration.write()) {
+      console.error('Failed to add credentials to file');
+      process.exit(1);
+    }
+  })
   .command('issuetypes', 'See a list of issue types', () => {
     const { issueTypes } = configFile.read();
 
