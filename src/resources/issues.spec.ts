@@ -129,7 +129,7 @@ describe(Issues.name, () => {
         });
 
       expect(
-        subject.assigned({ status: ['Assigned', 'In Progress'] })
+        subject.assigned({ statuses: ['Assigned', 'In Progress'] })
       ).resolves.toMatchObject([{ id: '1' }]);
     });
 
