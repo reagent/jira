@@ -119,7 +119,8 @@ yargs
         process.exit(1);
       }
 
-      const tickets = await client.issues.assigned({ statuses });
+      const options = statuses.length > 0 ? { statuses } : undefined;
+      const tickets = await client.issues.assigned(options);
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
 
