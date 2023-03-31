@@ -1,6 +1,6 @@
 {
   "name": "@reagent/jira",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Manage Jira tickets from the commandline",
   "license": "MIT",
   "scripts": {
