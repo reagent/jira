@@ -1,13 +1,8 @@
 import { dirname, join } from 'path';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { Credentials } from '../types';
 
 type Statuses = Array<string>;
-
-type Credentials = {
-  uri: string;
-  email: string;
-  token: string;
-};
 
 type ConfigurationSchema = {
   credentials: Credentials;

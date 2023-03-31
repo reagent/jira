@@ -1,4 +1,4 @@
-import { Configuration } from './cli/configuration-file';
+import { Credentials } from './cli/configuration-file';
 import { HttpClient } from './http-client';
 import { Issues } from './resources/issues';
 import { Projects } from './resources/projects';
@@ -13,9 +13,7 @@ class Jira {
 
   protected http: HttpClient;
 
-  constructor(configuration: Configuration) {
-    const { credentials } = configuration;
-
+  constructor(credentials: Credentials) {
     this.http = new HttpClient({
       email: credentials.email,
       token: credentials.token,
