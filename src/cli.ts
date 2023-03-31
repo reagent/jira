@@ -3,6 +3,7 @@
 import yargs from 'yargs';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import { readFileSync } from 'fs';
 
 import * as p from '@clack/prompts';
 import { terminal } from 'terminal-kit';
@@ -307,6 +308,14 @@ yargs
       console.log(issue.url);
     }
   )
+  .command('version', 'Print current CLI version', () => {
+    const packageFile = resolve(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(
+      readFileSync(packageFile, { encoding: 'utf-8' })
+    );
+
+    console.log(packageJson.version);
+  })
   .demandCommand(1, 'Subcommand not specified')
   .strict()
   .help().argv;
