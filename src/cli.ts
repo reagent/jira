@@ -109,18 +109,18 @@ yargs
       yargs.option('all', { type: 'boolean', default: false });
     },
     async (args) => {
-      const configuration = configFile.read();
-      const client = new Jira(configuration);
+      const { statuses, credentials } = configFile.read();
+      const client = new Jira(credentials);
 
       const activeOnly = !args.all;
 
-      if (activeOnly && configuration.statuses.length === 0) {
+      if (activeOnly && statuses.length === 0) {
         console.error('No active statuses found, add one with `statuses:add`');
         process.exit(1);
       }
 
       const tickets = await client.issues.assigned({
-        status: configuration.statuses,
+        status: statuses,
       });
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
@@ -136,9 +136,9 @@ yargs
     'tickets:watching',
     "Get a list of tickets you're watching",
     async () => {
-      const configuration = configFile.read();
+      const { credentials } = configFile.read();
 
-      const client = new Jira(configuration);
+      const client = new Jira(credentials);
       const tickets = await client.issues.watching();
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
@@ -156,8 +156,8 @@ yargs
     (yargs) =>
       yargs.positional('summary', { type: 'string', demandOption: true }),
     async (args) => {
-      const configuration = configFile.read();
-      const client = new Jira(configuration);
+      const { credentials } = configFile.read();
+      const client = new Jira(credentials);
 
       const input = await p.group(
         {
