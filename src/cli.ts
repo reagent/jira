@@ -119,9 +119,7 @@ yargs
         process.exit(1);
       }
 
-      const tickets = await client.issues.assigned({
-        status: statuses,
-      });
+      const tickets = await client.issues.assigned({ statuses });
 
       const cells: string[][] = [['Key', 'Summary', 'Status', 'URL']];
 

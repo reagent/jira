@@ -152,13 +152,13 @@ class Issues {
     return data.issues.map((i) => new Issue(i));
   }
 
-  async assigned(options?: { status: string[] }): Promise<Array<Issue>> {
+  async assigned(options?: { statuses: string[] }): Promise<Array<Issue>> {
     const query = new QueryBuilder()
       .where('assignee', 'currentUser()')
       .order('createdDate', 'DESC');
 
-    if (options?.status) {
-      query.in('status', options.status);
+    if (options?.statuses) {
+      query.in('status', options.statuses);
     }
 
     const { status, data } = await this.httpClient.get<IssueResponse>(
