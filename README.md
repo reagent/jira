@@ -6,7 +6,7 @@ the UI as much as possible.
 ## Installation
 
 ```
-yarn add @reagent/jira
+yarn global add @reagent/jira
 ```
 
 ## Usage
