@@ -6,11 +6,7 @@ the UI as much as possible.
 ## Installation
 
 ```
-git clone https://github.com/reagent/jira.git && \
-  cd jira && \
-  yarn && \
-  yarn pack && \
-  yarn global add `find ~+ -name '*.tgz' | sort -r | head -n1`
+yarn add @reagent/jira
 ```
 
 ## Usage
@@ -20,14 +16,13 @@ your [token management page][]. Once you have a token, you can initialize your
 local configuration:
 
 ```
-jira init \
-  --email=user@host.example \
-  --uri=https://example.atlassian.net
+jira init
 ```
 
-Enter your token at the prompt and your credentials will be written to the
-global configuration file (`~/.config/jira/config.json`). You can now try out
-some commands to test your credentials:
+Enter details about your Jira instance (including yoru access stoken) at the
+prompt and these will be written to the global configuration file
+(`~/.config/jira/config.json`). You can now try out some commands to test your
+credentials:
 
 ```
 # See all tickets assigned to you
