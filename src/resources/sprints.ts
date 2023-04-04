@@ -9,6 +9,7 @@ type SprintAttributes = {
 };
 
 type SprintsResponse = {
+  suggestions: Array<SprintAttributes>;
   allMatches: Array<SprintAttributes>;
 };
 
@@ -31,7 +32,7 @@ class Sprints {
       return [];
     }
 
-    return data.allMatches;
+    return [...data.suggestions, ...data.allMatches];
   }
 }
 
