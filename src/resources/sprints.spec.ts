@@ -31,7 +31,7 @@ describe(Sprints.name, () => {
           params: { projectKey: 'FOO', maxResults: 20, maxActiveSprints: 10 },
         })
         .respondWith<SprintsResponse>(HttpStatus.OK, {
-          allMatches: [
+          suggestions: [
             {
               id: 1,
               date: '2020-01-01',
@@ -39,6 +39,8 @@ describe(Sprints.name, () => {
               boardName: 'Product',
               stateKey: 'Active',
             },
+          ],
+          allMatches: [
             {
               id: 2,
               date: '2020-01-01',
