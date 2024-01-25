@@ -224,6 +224,15 @@ yargs
                     summary: results.term!,
                   });
 
+                  if (epics.length == 0) {
+                    const progress = await p.confirm({
+                      message: 'No epics found, continue?',
+                    });
+
+                    if (!progress) {
+                      process.exit(0);
+                    }
+                  } else {
                   return p.select({
                     message: 'Epic',
                     options: epics.map((e) => ({
@@ -231,6 +240,7 @@ yargs
                       label: e.summary,
                     })),
                   });
+                  }
                 },
               },
               {
