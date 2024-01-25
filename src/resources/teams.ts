@@ -1,8 +1,16 @@
+import { inspect } from 'util';
 import { HttpClient } from '../http-client';
 
 type TeamAttributes = {
   id: number;
   title: string;
+  resources: Array<{ id: number; personId: number }>;
+};
+
+type Team = {
+  id: number;
+  title: string;
+  memberCount: number;
 };
 
 type TeamResponse = {
@@ -12,7 +20,7 @@ type TeamResponse = {
 class Teams {
   constructor(protected http: HttpClient) {}
 
-  async all(): Promise<Array<TeamAttributes>> {
+  async all(): Promise<Array<Team>> {
     const { status, data } = await this.http.post<
       { maxResults: number },
       TeamResponse
@@ -22,7 +30,12 @@ class Teams {
       return [];
     }
 
-    return data.teams;
+    const teams = data.teams.map((t) => {
+      const { id, title, resources } = t;
+      return { id, title, memberCount: resources.length };
+    });
+
+    return teams;
   }
 }
 

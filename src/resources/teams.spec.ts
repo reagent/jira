@@ -29,11 +29,11 @@ describe(Teams.name, () => {
         .to(`${baseUri}/rest/teams/1.0/teams/find`)
         .with({ body: { maxResults: 100 } })
         .respondWith<TeamResponse>(HttpStatus.OK, {
-          teams: [{ id: 1, title: 'Team Name' }],
+          teams: [{ id: 1, title: 'Team Name', resources: [] }],
         });
 
       expect(subject.all()).resolves.toMatchObject([
-        { id: 1, title: 'Team Name' },
+        { id: 1, title: 'Team Name', memberCount: 0 },
       ]);
     });
 

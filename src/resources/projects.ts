@@ -36,6 +36,10 @@ class Projects {
     return data;
   }
 
+  async all(): Promise<Array<ProjectAttributes>> {
+    return this.where({ prefix: '' });
+  }
+
   async where(options: { prefix: string }): Promise<Array<ProjectAttributes>> {
     const { status, data } = await this.http.get<ProjectSearchResponse>(
       '/rest/api/3/project/search',

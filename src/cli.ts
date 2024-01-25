@@ -9,7 +9,7 @@ import { terminal } from 'terminal-kit';
 
 import { ConfigurationFile } from './cli/configuration-file';
 import { Jira } from './jira';
-import { NewIssueAttributes } from './resources/issues';
+import { IssueAttributes, NewIssueAttributes } from './resources/issues';
 
 type ValidationFunc = (input: string) => string | void;
 
@@ -68,10 +68,26 @@ yargs
       }
     );
 
-    const configuration = configFile.initialize({
+    const credentials = {
       email: input.email,
       uri: input.uri,
       token: input.token,
+    };
+
+    const client = new Jira(credentials);
+    const projects = await client.projects.all();
+
+    const defaultProjectKey = (await p.select({
+      message: 'Default Project',
+      options: projects.map((p) => ({
+        value: p.key,
+        label: `${p.name} (key: ${p.key})`,
+      })),
+    })) as string;
+
+    const configuration = configFile.initialize({
+      credentials,
+      defaultProjectKey,
     });
 
     if (!configuration.write()) {
@@ -155,22 +171,34 @@ yargs
     (yargs) =>
       yargs.positional('summary', { type: 'string', demandOption: true }),
     async (args) => {
-      const { credentials } = configFile.read();
+      const { credentials, defaultProjectKey } = configFile.read();
       const client = new Jira(credentials);
+      let selectedProjectId: string;
 
       const input = await p.group(
         {
           // Assign project
           projectId: async ({ results: _ }) => {
-            const projects = await client.projects.where({ prefix: 'PD' });
+            if (defaultProjectKey) {
+              const project = await client.projects.find(defaultProjectKey);
 
-            return p.select({
+              if (project) {
+                selectedProjectId = project.id;
+                return selectedProjectId;
+              }
+            }
+
+            const projects = await client.projects.all();
+
+            selectedProjectId = (await p.select({
               message: 'Project',
               options: projects.map((p) => ({
                 value: p.id,
                 label: `${p.name} (key: ${p.key})`,
               })),
-            });
+            })) as string;
+
+            return selectedProjectId;
           },
 
           // Optionally assign epic
@@ -235,27 +263,33 @@ yargs
 
             return p.select({
               message: 'Team',
-              options: teams.map(({ id, title }) => ({
+              options: teams.map(({ id, title, memberCount }) => ({
                 value: id,
-                label: title,
+                label: `${title} (members: ${memberCount})`,
               })),
             });
           },
 
           // Optionally assign sprint
           sprintId: async ({ results: _ }) => {
-            const sprints = await client.sprints.where({ projectKey: 'PD' });
+            const project = await client.projects.find(selectedProjectId);
 
-            const options = sprints.map(({ id, name }) => ({
-              value: id,
-              label: name,
-            }));
-            options.push({ value: -1, label: 'None' });
+            if (project) {
+              const sprints = await client.sprints.where({
+                projectKey: project.key,
+              });
 
-            return p.select({
-              message: 'Sprint',
-              options,
-            });
+              const options = sprints.map(({ id, name }) => ({
+                value: id,
+                label: name,
+              }));
+              options.push({ value: -1, label: 'None' });
+
+              return p.select({
+                message: 'Sprint',
+                options,
+              });
+            }
           },
 
           // Optionally assign labels

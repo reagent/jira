@@ -6,6 +6,7 @@ type Statuses = Array<string>;
 
 type ConfigurationSchema = {
   credentials: Credentials;
+  defaultProjectKey: string;
   statuses?: Statuses;
 };
 
@@ -24,6 +25,10 @@ class Configuration {
 
   get statuses(): Statuses {
     return this.configuration.statuses || [];
+  }
+
+  get defaultProjectKey(): string {
+    return this.configuration.defaultProjectKey;
   }
 
   addStatus(status: string): void {
@@ -50,10 +55,14 @@ class ConfigurationFile {
     return existsSync(this.fullPath);
   }
 
-  initialize(credentials: Credentials): Configuration {
+  initialize(options: {
+    credentials: Credentials;
+    defaultProjectKey: string;
+  }): Configuration {
+    const { credentials, defaultProjectKey } = options;
     return new Configuration({
       path: this.fullPath,
-      configuration: { credentials },
+      configuration: { credentials, defaultProjectKey },
     });
   }
 
