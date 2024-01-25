@@ -82,7 +82,7 @@ type IssueCreateBody = {
     issuetype: { id: number };
     parent?: { id: string };
     customfield_10001?: string; // team
-    customfield_10010?: number; // sprint
+    customfield_10020?: number; // sprint
     labels?: string[];
     summary: string;
     description: Description;
@@ -220,7 +220,7 @@ class Issues {
         project: { id: projectId },
         issuetype: { id: issueTypeId }, // chore
         customfield_10001: teamId?.toString(),
-        customfield_10010: sprintId,
+        customfield_10020: sprintId,
         description: description,
         labels,
       },
